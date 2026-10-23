@@ -1,0 +1,85 @@
+# Off-machine backstop for fleet-watch's upstream watcher (2026-10-23): every 15 min, ping the
+# operator's Telegram Inbox topic when anyone else acts on their upstream issues and PRs.
+# The script's docstring has the design; fleet-watch on the Mac stays the primary path.
+name: upstream-watch
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Print the pings instead of sending them (state untouched)"
+        type: boolean
+        default: false
+      test:
+        description: "Send one test ping to Telegram and stop"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write  # delete superseded state caches
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: watch.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Restore state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: state
+          key: upstream-watch-${{ github.run_id }}
+          restore-keys: upstream-watch-
+
+      - name: Watch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_TARGET: ${{ vars.TELEGRAM_TARGET }}
+          WATCH_SELF: djbclark
+          WATCH_REPOS: cfengine/core cfengine/libntech NorthernTechHQ/libntech cfengine/buildscripts
+          WATCH_IGNORE: cf-bottom
+          WATCH_STATE: state/upstream-watch.json
+          WATCH_DRY: ${{ inputs.dry && '1' || '0' }}
+          WATCH_TEST: ${{ inputs.test && '1' || '0' }}
+        run: python3 -I watch.py
+
+      - name: Save state
+        if: ${{ always() && !inputs.dry && !inputs.test }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: state
+          key: upstream-watch-${{ github.run_id }}
+
+      - name: Drop superseded state caches
+        if: ${{ always() && !inputs.dry && !inputs.test }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP: upstream-watch-${{ github.run_id }}
+        run: |
+          gh cache list -R "$REPO" --key upstream-watch- --limit 100 --json key --jq '.[].key' |
+            while read -r k; do
+              [ "$k" = "$KEEP" ] || gh cache delete -R "$REPO" "$k" >/dev/null || true
+            done
+
+      - name: Keep the schedule alive
+        # A public repo's schedule is disabled after 60 days without repository activity;
+        # enabling the (still enabled) workflow through the API resets that clock.
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: gh api -X PUT "repos/$REPO/actions/workflows/upstream-watch.yml/enable"

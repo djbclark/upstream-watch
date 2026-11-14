@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Off-machine backstop for fleet-watch's upstream watcher: ping Telegram when anyone else acts on
-the operator's upstream issues and pull requests.
+"""The operator's upstream watcher, off the Mac: ping Telegram when anyone else acts on the
+operator's upstream issues and pull requests.
 
-fleet-watch (on the Mac) is the primary path: it reads GitHub notifications every 5 min and relays
-each event into the registered agent session. It is blind while the Mac sleeps, and it reads unread
-notifications only, so a thread read on github.com before it looks is missed. This runs every
+It began as a backstop for fleet-watch's upstream watcher on the Mac, which read GitHub
+notifications every 5 min and relayed each event into an agent session; that watcher has been
+paused since 2026-11-07, so this is now the only path. This runs every
 15 min on GitHub Actions in a public repo (free minutes), from GitHub search (`involves:<self>`, so
 every future PR and issue is covered), and only pings: it has no way to start work, and the event
 text it quotes is a third party's. Its logs are public: they print counts, never the ping text.

@@ -1,6 +1,7 @@
-# Off-machine backstop for fleet-watch's upstream watcher (2026-10-23): every 15 min, ping the
-# operator's Telegram Inbox topic when anyone else acts on their upstream issues and PRs.
-# The script's docstring has the design; fleet-watch on the Mac stays the primary path.
+# The operator's upstream watcher, off the Mac (2026-10-23): every 15 min, ping the operator's
+# Telegram Inbox topic when anyone else acts on their upstream issues and PRs. The script's
+# docstring has the design; the Mac's fleet-watch upstream is paused (2026-11-07), so this is
+# the only path.
 name: upstream-watch
 
 on:

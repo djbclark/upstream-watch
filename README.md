@@ -1,7 +1,8 @@
 # upstream-watch
 
-An off-machine backstop for the operator's local upstream watcher (`fleet-watch upstream`, which
-relays each event into an agent session). Every 15 minutes a GitHub Actions run finds activity by
+The operator's upstream watcher, off the Mac. It began (2026-10-23) as a backstop for the local
+`fleet-watch upstream`, which has been paused since 2026-11-07, so this is now the only path
+(verified 2026-11-14). Every 15 minutes a GitHub Actions run finds activity by
 anyone else on djbclark's issues and pull requests in `cfengine/core`, `cfengine/libntech`,
 `NorthernTechHQ/libntech` and `cfengine/buildscripts` (GitHub search, `involves:djbclark`), and
 pings a Telegram topic. It only pings; it never starts work or writes anywhere upstream.
